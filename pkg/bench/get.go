@@ -28,6 +28,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/pkg/v2/console"
+
 	"github.com/minio/warp/pkg/generator"
 )
 
@@ -43,8 +44,14 @@ type Get struct {
 	CreateObjects int
 	Versions      int
 	RandomRanges  bool
+	FixedRange    *BytesRange
 	ListExisting  bool
 	ListFlat      bool
+}
+
+type BytesRange struct {
+	Start int64
+	End   int64
 }
 
 // Prepare will create an empty bucket or delete any content already there
@@ -287,6 +294,27 @@ func (g *Get) Start(ctx context.Context, wait chan struct{}) (Operations, error)
 					start := rng.Int63n(op.Size - size)
 					end := start + size
 					op.Size = end - start + 1
+					opts.SetRange(start, end)
+				} else if g.FixedRange != nil {
+					start := g.FixedRange.Start
+					end := g.FixedRange.End
+
+					// set new op.Size
+					switch {
+					case start == 0 && end < 0:
+						// Read last '-end' bytes. `bytes=-N`.
+						op.Size = end
+					case 0 < start && end == 0:
+						// Read everything starting from offset
+						// 'start'. `bytes=N-`.
+						op.Size = op.Size - start
+					case 0 <= start && start <= end:
+						// Read everything starting at 'start' till the
+						// 'end'. `bytes=N-M`
+						op.Size = end - start + 1
+					default:
+					}
+
 					opts.SetRange(start, end)
 				}
 				op.Start = time.Now()

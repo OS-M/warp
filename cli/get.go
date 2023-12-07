@@ -18,9 +18,13 @@
 package cli
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/minio/cli"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/pkg/v2/console"
+
 	"github.com/minio/warp/pkg/bench"
 )
 
@@ -46,6 +50,11 @@ var getFlags = []cli.Flag{
 	cli.BoolFlag{
 		Name:  "range",
 		Usage: "Do ranged get operations. Will request with random offset and length.",
+	},
+	cli.StringFlag{
+		Name: "fixed-range",
+		Usage: "Do ranged get operations. Examples: '1-100', '-100', '1-'. " +
+			"Will request bytes from start to end inclusive (see http range header).",
 	},
 	cli.IntFlag{
 		Name:  "versions",
@@ -80,6 +89,7 @@ func mainGet(ctx *cli.Context) error {
 		Common:        getCommon(ctx, newGenSource(ctx, "obj.size")),
 		Versions:      ctx.Int("versions"),
 		RandomRanges:  ctx.Bool("range"),
+		FixedRange:    parseBytesRange(ctx.String("fixed-range")),
 		CreateObjects: ctx.Int("objects"),
 		GetOpts:       minio.GetObjectOptions{ServerSideEncryption: sse},
 		ListExisting:  ctx.Bool("list-existing"),
@@ -87,6 +97,40 @@ func mainGet(ctx *cli.Context) error {
 		ListPrefix:    ctx.String("prefix"),
 	}
 	return runBench(ctx, &b)
+}
+
+func parseBytesRange(s string) *bench.BytesRange {
+	if len(s) == 0 {
+		return nil
+	}
+	split := strings.Split(s, "-")
+	if len(split) != 2 {
+		console.Info("expected 2 parts of fixed-range, got", len(split))
+		return nil
+	}
+	var (
+		start int64
+		end   int64
+		err   error
+	)
+
+	if len(split[0]) > 0 {
+		start, err = strconv.ParseInt(split[0], 10, 64)
+		if err != nil {
+			console.Error("cannot parse fixed-range start", split[0])
+		}
+	}
+	if len(split[1]) > 0 {
+		end, err = strconv.ParseInt(split[1], 10, 64)
+		if err != nil {
+			console.Error("cannot parse fixed-range end", split[0])
+		}
+	}
+
+	return &bench.BytesRange{
+		Start: start,
+		End:   end,
+	}
 }
 
 func checkGetSyntax(ctx *cli.Context) {
