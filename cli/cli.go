@@ -34,8 +34,9 @@ import (
 	"github.com/minio/pkg/v2/console"
 	"github.com/minio/pkg/v2/trie"
 	"github.com/minio/pkg/v2/words"
-	"github.com/minio/warp/pkg"
 	completeinstall "github.com/posener/complete/cmd/install"
+
+	"github.com/minio/warp/pkg"
 )
 
 var (

@@ -23,12 +23,15 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/minio/warp/pkg/util/limiter"
 )
 
 // Put benchmarks upload speed.
 type Put struct {
 	Common
 	prefixes map[string]struct{}
+	MaxRPS   int
 }
 
 // Prepare will create an empty bucket ot delete any content already there.
@@ -51,6 +54,17 @@ func (u *Put) Start(ctx context.Context, wait chan struct{}) (Operations, error)
 	// Non-terminating context.
 	nonTerm := context.Background()
 
+	var limiterChan <-chan time.Time
+	if u.MaxRPS > 0 {
+		ticker := limiter.TickerForRPS(float32(u.MaxRPS))
+		defer ticker.Stop()
+		limiterChan = ticker.C
+	} else {
+		closedChan := make(chan time.Time)
+		close(closedChan)
+		limiterChan = closedChan
+	}
+
 	for i := 0; i < u.Concurrency; i++ {
 		src := u.Source()
 		u.prefixes[src.Prefix()] = struct{}{}
@@ -65,7 +79,7 @@ func (u *Put) Start(ctx context.Context, wait chan struct{}) (Operations, error)
 				select {
 				case <-done:
 					return
-				default:
+				case <-limiterChan:
 				}
 				obj := src.Object()
 				opts.ContentType = obj.ContentType

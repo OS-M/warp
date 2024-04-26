@@ -21,6 +21,7 @@ import (
 	"github.com/minio/cli"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/pkg/v2/console"
+
 	"github.com/minio/warp/pkg/bench"
 )
 
@@ -35,6 +36,11 @@ var putFlags = []cli.Flag{
 		Value:  "",
 		Usage:  "Multipart part size. Can be a number or 10KiB/MiB/GiB. All sizes are base 2 binary.",
 		Hidden: true,
+	},
+	cli.IntFlag{
+		Name:  "max-rps",
+		Value: 0,
+		Usage: "Max RPS",
 	},
 }
 
@@ -62,6 +68,7 @@ func mainPut(ctx *cli.Context) error {
 	checkPutSyntax(ctx)
 	b := bench.Put{
 		Common: getCommon(ctx, newGenSource(ctx, "obj.size")),
+		MaxRPS: ctx.Int("max-rps"),
 	}
 	return runBench(ctx, &b)
 }
