@@ -27,6 +27,8 @@ import (
 	"github.com/minio/pkg/v2/console"
 	"github.com/minio/warp/pkg/bench"
 	"github.com/minio/warp/pkg/generator"
+
+	"golang.org/x/time/rate"
 )
 
 // Collection of warp flags currently supported
@@ -206,6 +208,11 @@ var ioFlags = []cli.Flag{
 		Value: 20,
 		Usage: "Run this many concurrent operations per warp client",
 	},
+	cli.IntFlag{
+		Name:  "sndbuf",
+		Value: 32 * 1024, // 32KiB up from 4KiB default
+		Usage: "specify custom read/write socket buffer size in bytes",
+	},
 	cli.BoolFlag{
 		Name:  "noprefix",
 		Usage: "Do not use separate prefix for each thread",
@@ -217,6 +224,10 @@ var ioFlags = []cli.Flag{
 	cli.BoolFlag{
 		Name:  "disable-multipart",
 		Usage: "disable multipart uploads",
+	},
+	cli.BoolFlag{
+		Name:  "disable-sha256-payload",
+		Usage: "disable calculating sha256 on client side for uploads",
 	},
 	cli.BoolFlag{
 		Name:  "md5",
@@ -246,6 +257,11 @@ var ioFlags = []cli.Flag{
 		EnvVar: appNameUC + "_INFLUXDB_CONNECT",
 		Usage:  "Send operations to InfluxDB. Specify as 'http://<token>@<hostname>:<port>/<bucket>/<org>'",
 	},
+	cli.Float64Flag{
+		Name:  "rps-limit",
+		Value: 0,
+		Usage: "Rate limit each instance to this number of requests per second (0 to disable)",
+	},
 }
 
 func getCommon(ctx *cli.Context, src func() generator.Source) bench.Common {
@@ -259,6 +275,14 @@ func getCommon(ctx *cli.Context, src func() generator.Source) bench.Common {
 			extra = append(extra, in)
 		}
 	}
+
+	rpsLimit := ctx.Float64("rps-limit")
+	var rpsLimiter *rate.Limiter
+	if rpsLimit > 0 {
+		// set burst to 1 as limiter will always be called to wait for 1 token
+		rpsLimiter = rate.NewLimiter(rate.Limit(rpsLimit), 1)
+	}
+
 	return bench.Common{
 		Client:        newClient(ctx),
 		Concurrency:   ctx.Int("concurrent"),
@@ -268,5 +292,6 @@ func getCommon(ctx *cli.Context, src func() generator.Source) bench.Common {
 		PutOpts:       putOpts(ctx),
 		DiscardOutput: ctx.Bool("stress"),
 		ExtraOut:      extra,
+		RpsLimiter:    rpsLimiter,
 	}
 }

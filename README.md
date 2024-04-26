@@ -58,6 +58,9 @@ Multiple S3 hosts can be specified as comma-separated values, for instance
 Alternatively numerical ranges can be specified using `--host=10.0.0.{1...10}:9000` which will add 
 `10.0.0.1` through `10.0.0.10`. This syntax can be used for any part of the host name and port.
 
+A file with newline separated hosts can also be specified using `file:` prefix and a file name.
+For distributed tests the file will be read locally and sent to each client.
+
 By default a host is chosen between the hosts that have the least number of requests running 
 and with the longest time since the last request finished. This will ensure that in cases where 
 hosts operate at different speeds that the fastest servers will get the most requests. 
@@ -112,6 +115,7 @@ Each client will also save its own data locally.
 
 Enabling server mode is done by adding `--warp-client=client-{1...10}:7761` 
 or a comma separated list of warp client hosts.
+Finally, a file with newline separated hosts can also be specified using `file:` prefix and a file name.
 If no host port is specified the default is added.
 
 Example:
@@ -324,12 +328,17 @@ It is possible by forcing md5 checksums on data by using the `--md5` option.
 
 ## DELETE
 
-Benchmarking delete operations will upload `--objects` objects of size `--obj.size` and attempt to
-delete as many it can within `--duration`.
+Benchmarking delete operations will attempt to delete as many objects it can within `--duration`.
+
+By default, `--objects` objects of size `--obj.size` are uploaded beforing doin the actual bench.
 
 The delete operations are done in `--batch` objects per request in `--concurrent` concurrently running requests.
 
 If there are no more objects left the benchmark will end.
+
+Using `--list-existing` will list at most `--objects` from the bucket and delete them instead of
+deleting random objects (set it to 0 to use all objects from the lsiting).
+Listing is restricted to `--prefix` if it is set and recursive listing can be disabled by setting `--list-flat`.
 
 The analysis will include the upload stats as `PUT` operations and the `DELETE` operations.
 
