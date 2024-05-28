@@ -18,19 +18,15 @@
 package generator
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"errors"
 	"io"
 	"math"
 	"math/rand"
-
-	"github.com/secure-io/sio-go"
 )
 
 type scrambler struct {
 	// Data source
-	stream *sio.EncReader
+	stream io.Reader
 	// The total number of bytes to return
 	want int64
 	// Number of bytes read
@@ -89,14 +85,11 @@ func newScrambler(data []byte, size int64, rng *rand.Rand) *scrambler {
 		panic(err)
 	}
 	rand.New(rng).Read(randSrc[:])
-	block, _ := aes.NewCipher(randSrc[:])
-	gcm, _ := cipher.NewGCM(block)
-	stream := sio.NewStream(gcm, sio.BufSize)
 
 	return &scrambler{
 		want:   size,
 		read:   0,
-		stream: stream.EncryptReader(newCircularBuffer(data, math.MaxInt64), randSrc[:stream.NonceSize()], nil),
+		stream: newCircularBuffer(data, math.MaxInt64),
 	}
 }
 
