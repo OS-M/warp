@@ -61,11 +61,6 @@ var getFlags = []cli.Flag{
 		Value: 1,
 		Usage: "Number of versions to upload. If more than 1, versioned listing will be benchmarked",
 	},
-	cli.IntFlag{
-		Name:  "max-rps",
-		Value: 0,
-		Usage: "Max RPS",
-	},
 }
 
 var getCmd = cli.Command{
@@ -93,7 +88,6 @@ func mainGet(ctx *cli.Context) error {
 	b := bench.Get{
 		Common:        getCommon(ctx, newGenSource(ctx, "obj.size")),
 		Versions:      ctx.Int("versions"),
-		MaxRPS:        ctx.Int("max-rps"),
 		RandomRanges:  ctx.Bool("range"),
 		FixedRange:    parseBytesRange(ctx.String("fixed-range")),
 		CreateObjects: ctx.Int("objects"),

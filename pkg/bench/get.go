@@ -30,7 +30,6 @@ import (
 	"github.com/minio/pkg/v2/console"
 
 	"github.com/minio/warp/pkg/generator"
-	"github.com/minio/warp/pkg/util/limiter"
 )
 
 // Get benchmarks download speed.
@@ -43,7 +42,6 @@ type Get struct {
 
 	objects       generator.Objects
 	CreateObjects int
-	MaxRPS        int
 	Versions      int
 	RandomRanges  bool
 	FixedRange    *BytesRange
@@ -160,17 +158,6 @@ func (g *Get) Prepare(ctx context.Context) error {
 	var groupErr error
 	var mu sync.Mutex
 
-	var limiterChan <-chan time.Time
-	if g.MaxRPS > 0 {
-		ticker := limiter.TickerForRPS(float32(g.MaxRPS))
-		defer ticker.Stop()
-		limiterChan = ticker.C
-	} else {
-		closedChan := make(chan time.Time)
-		close(closedChan)
-		limiterChan = closedChan
-	}
-
 	for i := 0; i < g.Concurrency; i++ {
 		go func(i int) {
 			defer wg.Done()
@@ -181,7 +168,7 @@ func (g *Get) Prepare(ctx context.Context) error {
 				select {
 				case <-ctx.Done():
 					return
-				case <-limiterChan:
+				default:
 				}
 
 				if g.rpsLimit(ctx) != nil {

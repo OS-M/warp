@@ -37,11 +37,6 @@ var putFlags = []cli.Flag{
 		Usage:  "Multipart part size. Can be a number or 10KiB/MiB/GiB. All sizes are base 2 binary.",
 		Hidden: true,
 	},
-	cli.IntFlag{
-		Name:  "max-rps",
-		Value: 0,
-		Usage: "Max RPS",
-	},
 }
 
 // Put command.
@@ -68,7 +63,6 @@ func mainPut(ctx *cli.Context) error {
 	checkPutSyntax(ctx)
 	b := bench.Put{
 		Common: getCommon(ctx, newGenSource(ctx, "obj.size")),
-		MaxRPS: ctx.Int("max-rps"),
 	}
 	return runBench(ctx, &b)
 }
