@@ -17,6 +17,10 @@ FROM alpine
 MAINTAINER MinIO Development "dev@min.io"
 EXPOSE 7761
 
+ADD nebius/ca/*.crt /nebius/ca/
+RUN mkdir -p /usr/local/share/ca-certificates/ && \
+    cp /nebius/ca/*.crt /usr/local/share/ca-certificates/ && \
+    cat /nebius/ca/*.crt >> /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /go/src/github.com/minio/warp/warp /warp
 
 ENTRYPOINT ["/warp"]
