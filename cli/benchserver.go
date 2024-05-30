@@ -31,9 +31,10 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/minio/cli"
 	"github.com/minio/mc/pkg/probe"
+	"github.com/minio/websocket"
+
 	"github.com/minio/warp/api"
 	"github.com/minio/warp/pkg/bench"
-	"github.com/minio/websocket"
 )
 
 const warpServerVersion = 1
@@ -206,18 +207,18 @@ func runServerBenchmark(ctx *cli.Context, b bench.Benchmark) (bool, error) {
 	prof.stop(context.Background(), ctx, fileName+".profiles.zip")
 
 	infoLn("Done. Downloading operations...")
-	downloaded := conns.downloadOps()
-	switch len(downloaded) {
-	case 0:
-	case 1:
-		allOps = downloaded[0]
-	default:
-		threads := uint16(0)
-		for _, ops := range downloaded {
-			threads = ops.OffsetThreads(threads)
-			allOps = append(allOps, ops...)
-		}
-	}
+	//downloaded := conns.downloadOps()
+	//switch len(downloaded) {
+	//case 0:
+	//case 1:
+	//	allOps = downloaded[0]
+	//default:
+	//	threads := uint16(0)
+	//	for _, ops := range downloaded {
+	//		threads = ops.OffsetThreads(threads)
+	//		allOps = append(allOps, ops...)
+	//	}
+	//}
 
 	if len(allOps) > 0 {
 		allOps.SortByStartTime()
